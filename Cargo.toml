@@ -1,7 +1,7 @@
 [package]
 name = "stdecor"
 description = "Run a command with a decorated stdout/stderr"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Leandro Lisboa Penz <lpenz@lpenz.org>"]
 edition = "2021"
 license = "MIT"
@@ -19,3 +19,14 @@ tokio-process-stream = "0.4.0"
 color-eyre = "0.6.2"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "tracing-log"] }
+[package.metadata.deb]
+section = "utils"
+extended-description = """\
+stdecor runs a command with a decorated stdout/stderr
+"""
+assets = [
+    ["target/release/stdecor", "usr/bin/", "755"],
+    ["LICENSE", "usr/share/doc/stdecor/", "644"],
+    ["AUTHORS", "usr/share/doc/stdecor/", "644"],
+    ["README.md", "usr/share/doc/stdecor/", "644"],
+]
