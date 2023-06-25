@@ -16,10 +16,10 @@ use crate::cli::Cli;
 #[tracing::instrument]
 pub fn buildcmd(cli: &Cli) -> Command {
     let mut cmd = Command::new(&cli.command[0]);
-    cmd.args(cli.command.iter().skip(1));
-    cmd.stdin(Stdio::null());
-    cmd.stdout(Stdio::piped());
-    cmd.stderr(Stdio::piped());
+    cmd.args(cli.command.iter().skip(1))
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
     cmd
 }
 

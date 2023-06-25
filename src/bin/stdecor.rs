@@ -4,6 +4,7 @@
 
 use clap::Parser;
 use std::error::Error;
+use std::process;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -13,6 +14,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
     let args = stdecor::cli::Cli::parse();
-    stdecor::runner::run(&args).await?;
-    Ok(())
+    let exitstatus = stdecor::runner::run(&args).await?;
+    process::exit(exitstatus.code().unwrap_or(0));
 }
