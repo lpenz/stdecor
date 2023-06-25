@@ -19,6 +19,12 @@ tokio-process-stream = "0.4.0"
 color-eyre = "0.6.2"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "tracing-log"] }
+
+[dependencies.chrono]
+version = "0.4.26"
+default-features = false
+features = ["clock"]
+
 [package.metadata.deb]
 section = "utils"
 extended-description = """\

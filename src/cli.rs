@@ -11,6 +11,10 @@ pub struct Cli {
     #[arg(short, long)]
     pub prefix: Option<String>,
 
+    /// Add the date and time as a prefix to both stdout and stderr
+    #[arg(short, long, default_value_t = false)]
+    pub date: bool,
+
     /// The command to run
     #[clap(required = true)]
     pub command: Vec<String>,
