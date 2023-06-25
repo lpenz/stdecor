@@ -8,5 +8,6 @@ use clap::Parser;
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     /// The command to run
+    #[clap(required = true)]
     pub command: Vec<String>,
 }
