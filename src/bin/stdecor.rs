@@ -14,6 +14,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
     let args = stdecor::cli::Cli::parse();
-    let exitstatus = stdecor::runner::run(&args).await?;
-    process::exit(exitstatus.code().unwrap_or(0));
+    if args.command.is_empty() {
+        stdecor::runner::pipe(&args).await?;
+        Ok(())
+    } else {
+        let exitstatus = stdecor::runner::run(&args).await?;
+        process::exit(exitstatus.code().unwrap_or(0));
+    }
 }

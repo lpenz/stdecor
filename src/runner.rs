@@ -7,9 +7,10 @@ use color_eyre::{eyre::eyre, Result};
 use std::convert::TryFrom;
 use std::process::ExitStatus;
 use std::process::Stdio;
-use tokio::io::{self, AsyncWriteExt};
+use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio_process_stream as tps;
+use tokio_stream::wrappers::LinesStream;
 use tokio_stream::StreamExt;
 
 use crate::cli::Cli;
@@ -64,4 +65,19 @@ pub async fn run(cli: &Cli) -> Result<ExitStatus> {
         }
     }
     Err(eyre!("stream exhausted without a \"done\" element"))
+}
+
+#[tracing::instrument]
+pub async fn pipe(cli: &Cli) -> Result<()> {
+    let prefix_static = if let Some(prefix) = &cli.prefix {
+        format!("{} ", prefix)
+    } else {
+        "".to_string()
+    };
+    let mut stdin_lines = LinesStream::new(BufReader::new(io::stdin()).lines());
+    let mut stdout = io::stdout();
+    while let Some(line) = stdin_lines.next().await {
+        do_write(&mut stdout, &prefix_static, cli.date, &line?).await?;
+    }
+    Ok(())
 }

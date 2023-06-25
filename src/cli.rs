@@ -15,7 +15,6 @@ pub struct Cli {
     #[arg(short, long, default_value_t = false)]
     pub date: bool,
 
-    /// The command to run
-    #[clap(required = true)]
+    /// The command to run; use stdin if empty (pipe mode)
     pub command: Vec<String>,
 }
