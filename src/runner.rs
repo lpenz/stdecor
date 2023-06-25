@@ -6,6 +6,7 @@ use color_eyre::{eyre::eyre, Result};
 use std::convert::TryFrom;
 use std::process::ExitStatus;
 use std::process::Stdio;
+use tokio::io::{self, AsyncWriteExt};
 use tokio::process::Command;
 use tokio_process_stream as tps;
 use tokio_stream::StreamExt;
@@ -22,6 +23,14 @@ pub fn buildcmd(cli: &Cli) -> Command {
     cmd
 }
 
+pub async fn do_write<T>(mut fd: T, prefix: &str, line: &str) -> Result<()>
+where
+    T: AsyncWriteExt + std::marker::Unpin,
+{
+    let string = format!("{}{}\n", prefix, line);
+    fd.write_all(string.as_bytes()).await.map_err(|e| eyre!(e))
+}
+
 #[tracing::instrument]
 pub async fn run(cli: &Cli) -> Result<ExitStatus> {
     let cmd = buildcmd(cli);
@@ -31,13 +40,15 @@ pub async fn run(cli: &Cli) -> Result<ExitStatus> {
     } else {
         "".to_string()
     };
+    let mut stdout = io::stdout();
+    let mut stderr = io::stderr();
     while let Some(item) = stream.next().await {
         match item {
-            tps::Item::Stdout(l) => {
-                println!("{}{}", prefix, l);
+            tps::Item::Stdout(line) => {
+                do_write(&mut stdout, &prefix, &line).await?;
             }
-            tps::Item::Stderr(l) => {
-                eprintln!("{}{}", prefix, l);
+            tps::Item::Stderr(line) => {
+                do_write(&mut stderr, &prefix, &line).await?;
             }
             tps::Item::Done(s) => {
                 return Ok(s?);

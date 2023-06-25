@@ -13,7 +13,7 @@ keywords = ["command-line"]
 
 [dependencies]
 clap = { version = "4.3.8", features = ["derive"] }
-tokio = "1.28.2"
+tokio = { version = "1.28.2", features = ["io-std"] }
 tokio-stream = "0.1.14"
 tokio-process-stream = "0.4.0"
 color-eyre = "0.6.2"
