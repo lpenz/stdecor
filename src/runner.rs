@@ -26,13 +26,18 @@ pub fn buildcmd(cli: &Cli) -> Command {
 pub async fn run(cli: &Cli) -> Result<ExitStatus> {
     let cmd = buildcmd(cli);
     let mut stream = tps::ProcessStream::try_from(cmd)?;
+    let prefix = if let Some(prefix) = &cli.prefix {
+        format!("{} ", prefix)
+    } else {
+        "".to_string()
+    };
     while let Some(item) = stream.next().await {
         match item {
             tps::Item::Stdout(l) => {
-                println!("{}", l);
+                println!("{}{}", prefix, l);
             }
             tps::Item::Stderr(l) => {
-                eprintln!("{}", l);
+                eprintln!("{}{}", prefix, l);
             }
             tps::Item::Done(s) => {
                 return Ok(s?);
