@@ -25,18 +25,24 @@ pub fn buildcmd(cli: &Cli) -> Command {
     cmd
 }
 
-pub async fn do_write<T>(mut fd: T, prefix: &str, date: bool, line: &str) -> Result<()>
-where
-    T: AsyncWriteExt + std::marker::Unpin,
-{
+pub fn decorate(prefix: &str, date: bool, line: &str) -> String {
     let mut string = String::new();
     if date {
         let now = chrono::offset::Local::now();
         string.push_str(&now.format("%Y-%m-%d %H:%M:%S%.6f ").to_string());
     }
     string.push_str(prefix);
+    string.push(' ');
     string.push_str(line);
     string.push('\n');
+    string
+}
+
+pub async fn do_write<T>(mut fd: T, prefix: &str, date: bool, line: &str) -> Result<()>
+where
+    T: AsyncWriteExt + std::marker::Unpin,
+{
+    let string = decorate(prefix, date, line);
     fd.write_all(string.as_bytes()).await.map_err(|e| eyre!(e))
 }
 
@@ -44,20 +50,15 @@ where
 pub async fn run(cli: &Cli) -> Result<ExitStatus> {
     let cmd = buildcmd(cli);
     let mut stream = tps::ProcessStream::try_from(cmd)?;
-    let prefix_static = if let Some(prefix) = &cli.prefix {
-        format!("{} ", prefix)
-    } else {
-        "".to_string()
-    };
     let mut stdout = io::stdout();
     let mut stderr = io::stderr();
     while let Some(item) = stream.next().await {
         match item {
             tps::Item::Stdout(line) => {
-                do_write(&mut stdout, &prefix_static, cli.date, &line).await?;
+                do_write(&mut stdout, &cli.prefix, cli.date, &line).await?;
             }
             tps::Item::Stderr(line) => {
-                do_write(&mut stderr, &prefix_static, cli.date, &line).await?;
+                do_write(&mut stderr, &cli.prefix, cli.date, &line).await?;
             }
             tps::Item::Done(s) => {
                 return Ok(s?);
@@ -69,15 +70,10 @@ pub async fn run(cli: &Cli) -> Result<ExitStatus> {
 
 #[tracing::instrument]
 pub async fn pipe(cli: &Cli) -> Result<()> {
-    let prefix_static = if let Some(prefix) = &cli.prefix {
-        format!("{} ", prefix)
-    } else {
-        "".to_string()
-    };
     let mut stdin_lines = LinesStream::new(BufReader::new(io::stdin()).lines());
     let mut stdout = io::stdout();
     while let Some(line) = stdin_lines.next().await {
-        do_write(&mut stdout, &prefix_static, cli.date, &line?).await?;
+        do_write(&mut stdout, &cli.prefix, cli.date, &line?).await?;
     }
     Ok(())
 }

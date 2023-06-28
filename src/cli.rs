@@ -8,8 +8,8 @@ use clap::Parser;
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     /// Add a default prefix to both stdout and stderr
-    #[arg(short, long)]
-    pub prefix: Option<String>,
+    #[arg(short, long, default_value = "")]
+    pub prefix: String,
 
     /// Add the date and time as a prefix to both stdout and stderr
     #[arg(short, long, default_value_t = false)]
