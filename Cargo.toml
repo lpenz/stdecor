@@ -8,6 +8,7 @@ license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/lpenz/stdecor"
 repository = "https://github.com/lpenz/stdecor"
+build = "build.rs"
 categories = ["command-line-utilities"]
 keywords = ["command-line"]
 
@@ -25,12 +26,17 @@ version = "0.4.26"
 default-features = false
 features = ["clock"]
 
+[build-dependencies]
+color-eyre = "0.6.2"
+man = "0.3.0"
+
 [package.metadata.deb]
 section = "utils"
 extended-description = """\
 stdecor runs a command with a decorated stdout/stderr
 """
 assets = [
+    ["target/release/stdecor.1", "usr/share/man/man1/", "644"],
     ["target/release/stdecor", "usr/bin/", "755"],
     ["LICENSE", "usr/share/doc/stdecor/", "644"],
     ["AUTHORS", "usr/share/doc/stdecor/", "644"],
