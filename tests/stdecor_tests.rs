@@ -2,9 +2,15 @@
 // This file is subject to the terms and conditions defined in
 // file 'LICENSE', which is part of this source code package.
 
+use color_eyre::Result;
+
 use stdecor::*;
 
-#[test]
-fn test_decorate() {
-    assert_eq!(&runner::decorate("1234", false, "abcd"), "1234 abcd\n");
+#[tokio::test]
+async fn test_decorate() -> Result<()> {
+    assert_eq!(
+        &runner::decor_str("1234", false, "abcd").await?,
+        "1234 abcd\n"
+    );
+    Ok(())
 }
