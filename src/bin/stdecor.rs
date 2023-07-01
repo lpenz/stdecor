@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .init();
     let args = stdecor::cli::Cli::parse();
     if args.command.is_empty() {
-        stdecor::runner::pipe(&args).await?;
+        stdecor::pipe::pipe(&args).await?;
         Ok(())
     } else {
         let exitstatus = stdecor::runner::run(&args).await?;

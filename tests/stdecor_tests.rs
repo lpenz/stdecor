@@ -7,9 +7,9 @@ use color_eyre::Result;
 use stdecor::*;
 
 #[tokio::test]
-async fn test_decorate() -> Result<()> {
+async fn test_decor() -> Result<()> {
     assert_eq!(
-        &runner::decor_str("1234", false, "abcd").await?,
+        &decor_async::decor_str("1234", false, "abcd").await?,
         "1234 abcd\n"
     );
     Ok(())
