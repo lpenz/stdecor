@@ -6,6 +6,21 @@ use clap::Parser;
 use std::error::Error;
 use std::process;
 
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+pub struct Cli {
+    /// Add a default prefix to both stdout and stderr
+    #[arg(short, long, default_value = "")]
+    pub prefix: String,
+
+    /// Add the date and time as a prefix to both stdout and stderr
+    #[arg(short, long, default_value_t = false)]
+    pub date: bool,
+
+    /// The command to run; use stdin if empty (pipe mode)
+    pub command: Vec<String>,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     color_eyre::install()?;
@@ -13,12 +28,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .with_span_events(tracing_subscriber::fmt::format::FmtSpan::ACTIVE)
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
-    let args = stdecor::cli::Cli::parse();
-    if args.command.is_empty() {
-        stdecor::pipe::pipe(&args).await?;
+    let cli = Cli::parse();
+    if cli.command.is_empty() {
+        stdecor::pipe::pipe(&cli.prefix, cli.date).await?;
         Ok(())
     } else {
-        let exitstatus = stdecor::runner::run(&args).await?;
+        let command: Vec<&str> = cli.command.iter().map(String::as_ref).collect();
+        let exitstatus = stdecor::runner::run(&cli.prefix, cli.date, &command).await?;
         process::exit(exitstatus.code().unwrap_or(0));
     }
 }
