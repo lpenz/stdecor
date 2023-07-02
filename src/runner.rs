@@ -6,12 +6,14 @@ use color_eyre::{eyre::eyre, Result};
 use std::convert::TryFrom;
 use std::process::ExitStatus;
 use std::process::Stdio;
+use tokio::io::AsyncWriteExt;
 use tokio::io::{self, BufWriter};
 use tokio::process::Command;
 use tokio_process_stream as tps;
 use tokio_stream::StreamExt;
 
-use crate::decor_async;
+use crate::decor::Decor;
+use crate::writer_async;
 
 #[tracing::instrument]
 pub fn buildcmd(command: &[&str]) -> Command {
@@ -26,18 +28,20 @@ pub fn buildcmd(command: &[&str]) -> Command {
 #[tracing::instrument]
 pub async fn run(prefix: &str, date: bool, command: &[&str]) -> Result<ExitStatus> {
     let cmd = buildcmd(command);
+    let decor = Decor::new(prefix, date);
     let mut stream = tps::ProcessStream::try_from(cmd)?;
     let mut stdout = BufWriter::new(io::stdout());
     let mut stderr = BufWriter::new(io::stderr());
     while let Some(item) = stream.next().await {
         match item {
             tps::Item::Stdout(line) => {
-                decor_async::decor_write(prefix, date, &line, &mut stdout).await?;
+                writer_async::decor_write(&decor, &line, &mut stdout).await?;
             }
             tps::Item::Stderr(line) => {
-                decor_async::decor_write(prefix, date, &line, &mut stderr).await?;
+                writer_async::decor_write(&decor, &line, &mut stderr).await?;
             }
             tps::Item::Done(s) => {
+                stdout.flush().await?;
                 return Ok(s?);
             }
         }
