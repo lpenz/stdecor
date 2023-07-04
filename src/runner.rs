@@ -26,9 +26,14 @@ pub fn buildcmd(command: &[&str]) -> Command {
 }
 
 #[tracing::instrument]
-pub async fn run(prefix: &str, date: bool, command: &[&str]) -> Result<ExitStatus> {
+pub async fn run(
+    prefix: &str,
+    date: bool,
+    width: Option<usize>,
+    command: &[&str],
+) -> Result<ExitStatus> {
     let cmd = buildcmd(command);
-    let decor = Decor::new(prefix, date);
+    let decor = Decor::new(prefix, date, None)?;
     let mut stream = tps::ProcessStream::try_from(cmd)?;
     let mut stdout = BufWriter::new(io::stdout());
     let mut stderr = BufWriter::new(io::stderr());

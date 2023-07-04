@@ -5,6 +5,7 @@
 use clap::Parser;
 use std::error::Error;
 use std::process;
+use terminal_size::{terminal_size, Width};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -29,12 +30,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
     let cli = Cli::parse();
+    let width = if let Some((Width(w), _)) = terminal_size() {
+        Some(w as usize)
+    } else {
+        None
+    };
     if cli.command.is_empty() {
-        stdecor::pipe::pipe(&cli.prefix, cli.date).await?;
+        stdecor::pipe::pipe(&cli.prefix, cli.date, width).await?;
         Ok(())
     } else {
         let command: Vec<&str> = cli.command.iter().map(String::as_ref).collect();
-        let exitstatus = stdecor::runner::run(&cli.prefix, cli.date, &command).await?;
+        let exitstatus = stdecor::runner::run(&cli.prefix, cli.date, width, &command).await?;
         process::exit(exitstatus.code().unwrap_or(0));
     }
 }

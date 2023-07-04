@@ -18,7 +18,7 @@ where
 }
 
 pub async fn decor_str(prefix: &str, date: bool, line: &str) -> Result<String> {
-    let decor = Decor::new(prefix, date);
+    let decor = Decor::new(prefix, date, None)?;
     let mut output = Vec::<u8>::new();
     let mut o = io::BufWriter::new(&mut output);
     for line in decor.decorate(line) {

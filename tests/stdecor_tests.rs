@@ -9,7 +9,7 @@ use stdecor::*;
 
 #[test]
 fn test_decor() -> Result<()> {
-    let decor = Decor::new("1234", false);
+    let decor = Decor::new("1234", false, None)?;
     assert_eq!(
         decor.decorate("abcd").collect::<Vec<_>>(),
         vec!["1234 abcd\n"]
@@ -22,6 +22,16 @@ async fn test_writer_async() -> Result<()> {
     assert_eq!(
         &writer_async::decor_str("1234", false, "abcd").await?,
         "1234 abcd\n"
+    );
+    Ok(())
+}
+
+#[test]
+fn test_decor_wrap() -> Result<()> {
+    let decor = Decor::new("1234", false, Some(7))?;
+    assert_eq!(
+        decor.decorate("abcde").collect::<Vec<_>>(),
+        vec!["1234 ab\n", "1234 cd\n", "1234 e\n"]
     );
     Ok(())
 }

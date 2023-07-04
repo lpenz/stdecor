@@ -3,32 +3,85 @@
 // file 'LICENSE', which is part of this source code package.
 
 use chrono;
+use color_eyre::{eyre::eyre, Result};
 use std::iter;
 
+#[derive(Debug)]
 pub struct Decor {
     prefix: String,
     date: bool,
+    width: Option<usize>,
+}
+
+#[inline]
+fn gen_fullprefix(prefix: &str, date: bool) -> String {
+    let mut fullprefix = String::new();
+    if date {
+        let now = chrono::offset::Local::now();
+        let date = now.format("%Y-%m-%d %H:%M:%S%.6f ").to_string();
+        fullprefix.push_str(&date);
+    }
+    fullprefix.push_str(prefix);
+    fullprefix.push(' ');
+    fullprefix
 }
 
 impl Decor {
-    pub fn new(prefix: &str, date: bool) -> Self {
-        Decor {
+    #[tracing::instrument]
+    pub fn new(prefix: &str, date: bool, width: Option<usize>) -> Result<Self> {
+        if let Some(w) = width {
+            let prefixlen = gen_fullprefix(prefix, date).len();
+            if prefixlen >= w {
+                return Err(eyre!(
+                    "prefix with length {} is too big for line width {}",
+                    prefix.len(),
+                    w
+                ));
+            }
+        }
+        Ok(Decor {
             prefix: prefix.to_string(),
             date,
-        }
+            width,
+        })
     }
 
-    pub fn decorate(&self, line: &str) -> impl iter::Iterator<Item = String> {
-        let mut output = String::new();
-        if self.date {
-            let now = chrono::offset::Local::now();
-            let date = now.format("%Y-%m-%d %H:%M:%S%.6f ").to_string();
-            output.push_str(&date);
+    pub fn decorate<'a>(&self, line: &'a str) -> impl iter::Iterator<Item = String> + 'a {
+        let fullprefix = gen_fullprefix(&self.prefix, self.date);
+        LineWrapper::new(line, self.width.map(|w| w - fullprefix.len()))
+            .map(move |l| format!("{}{}\n", fullprefix, l))
+    }
+}
+
+#[derive(Debug)]
+pub struct LineWrapper<'a> {
+    rest: Option<&'a str>,
+    width: Option<usize>,
+}
+
+impl<'a> LineWrapper<'a> {
+    pub fn new(original: &'a str, width: Option<usize>) -> Self {
+        Self {
+            rest: Some(original),
+            width,
         }
-        output.push_str(&self.prefix);
-        output.push(' ');
-        output.push_str(line);
-        output.push('\n');
-        iter::once(output)
+    }
+}
+
+impl<'a> Iterator for LineWrapper<'a> {
+    type Item = &'a str;
+    fn next(&mut self) -> Option<Self::Item> {
+        let rest = self.rest.as_mut()?;
+        if let Some(width) = self.width {
+            if rest.len() >= width {
+                let current = &rest[0..width];
+                *rest = &rest[width..];
+                Some(current)
+            } else {
+                self.rest.take()
+            }
+        } else {
+            self.rest.take()
+        }
     }
 }

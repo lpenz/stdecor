@@ -12,8 +12,8 @@ use crate::decor::Decor;
 use crate::writer_async;
 
 #[tracing::instrument]
-pub async fn pipe(prefix: &str, date: bool) -> Result<()> {
-    let decor = Decor::new(prefix, date);
+pub async fn pipe(prefix: &str, date: bool, width: Option<usize>) -> Result<()> {
+    let decor = Decor::new(prefix, date, width)?;
     let mut stdin_lines = LinesStream::new(BufReader::new(io::stdin()).lines());
     let mut stdout = BufWriter::new(io::stdout());
     while let Some(line) = stdin_lines.next().await {
