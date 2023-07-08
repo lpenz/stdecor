@@ -33,7 +33,7 @@ pub async fn run(
     command: &[&str],
 ) -> Result<ExitStatus> {
     let cmd = buildcmd(command);
-    let decor = Decor::new(prefix, date, None)?;
+    let decor = Decor::new(prefix, date, width)?;
     let mut stream = tps::ProcessStream::try_from(cmd)?;
     let mut stdout = BufWriter::new(io::stdout());
     let mut stderr = BufWriter::new(io::stderr());
