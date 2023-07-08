@@ -3,22 +3,21 @@
 // file 'LICENSE', which is part of this source code package.
 
 use color_eyre::Result;
-use tokio::io::AsyncWriteExt;
-use tokio::io::{self, AsyncBufReadExt, BufReader, BufWriter};
-use tokio_stream::wrappers::LinesStream;
-use tokio_stream::StreamExt;
+use std::io::{self, BufRead, Write};
 
 use crate::decor::Decor;
-use crate::writer_async;
 
 #[tracing::instrument]
-pub async fn pipe(prefix: &str, date: bool, width: Option<usize>) -> Result<()> {
+pub fn pipe(prefix: &str, date: bool, width: Option<usize>) -> Result<()> {
     let decor = Decor::new(prefix, date, width)?;
-    let mut stdin_lines = LinesStream::new(BufReader::new(io::stdin()).lines());
-    let mut stdout = BufWriter::new(io::stdout());
-    while let Some(line) = stdin_lines.next().await {
-        writer_async::decor_write(&decor, &line?, &mut stdout).await?;
+    let stdin = io::stdin().lock();
+    for line_in in stdin.lines() {
+        let mut stdout = io::stdout().lock();
+        let line_in = line_in?;
+        for line_out in decor.decorate(&line_in) {
+            stdout.write_all(line_out.as_bytes())?;
+        }
+        stdout.flush()?;
     }
-    stdout.flush().await?;
     Ok(())
 }

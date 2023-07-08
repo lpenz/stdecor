@@ -36,7 +36,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         None
     };
     if cli.command.is_empty() {
-        stdecor::pipe::pipe(&cli.prefix, cli.date, width).await?;
+        stdecor::pipe::pipe(&cli.prefix, cli.date, width)?;
         Ok(())
     } else {
         let command: Vec<&str> = cli.command.iter().map(String::as_ref).collect();
