@@ -31,13 +31,17 @@ fn into_reader(r: impl ReadFd + 'static) -> BufReader<Box<dyn ReadFd>> {
     BufReader::new(Box::new(r))
 }
 
-fn print_lines(decor: &Decor, buf: &[u8]) -> Result<()> {
+fn print_lines(decor: &Decor, buf: &[u8], key: usize) -> Result<()> {
     let line_in = std::str::from_utf8(buf)?;
-    let mut stdout = io::stdout().lock();
+    let mut output: Box<dyn Write> = if key == 0 {
+        Box::new(io::stdout().lock())
+    } else {
+        Box::new(io::stderr().lock())
+    };
     for line_out in decor.decorate(line_in) {
-        stdout.write_all(line_out.as_bytes())?;
+        output.write_all(line_out.as_bytes())?;
     }
-    stdout.flush()?;
+    output.flush()?;
     Ok(())
 }
 
@@ -81,7 +85,7 @@ pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> 
                         let buf = bufreader.buffer();
                         match memchr::memchr(b'\n', buf) {
                             Some(i) => {
-                                print_lines(&decor, &buf[0..i])?;
+                                print_lines(&decor, &buf[0..i], ev.key)?;
                                 bufreader.consume(i + 1);
                             }
                             None => {
@@ -98,10 +102,12 @@ pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> 
         if let Some(result) = child.try_wait()? {
             // Child exited, print all pending output.
             // Specially important if the command doesn't end its output with a newline.
-            for bufreader in bufreaders.into_iter().flatten() {
-                for line in bufreader.lines() {
-                    let line = line?;
-                    print_lines(&decor, line.as_bytes())?;
+            for (key, bufreader_opt) in bufreaders.into_iter().enumerate() {
+                if let Some(bufreader) = bufreader_opt {
+                    for line in bufreader.lines() {
+                        let line = line?;
+                        print_lines(&decor, line.as_bytes(), key)?;
+                    }
                 }
             }
             return Ok(result);
