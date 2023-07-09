@@ -22,8 +22,7 @@ pub struct Cli {
     pub command: Vec<String>,
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
     color_eyre::install()?;
     tracing_subscriber::fmt()
         .with_span_events(tracing_subscriber::fmt::format::FmtSpan::ACTIVE)
@@ -40,7 +39,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Ok(())
     } else {
         let command: Vec<&str> = cli.command.iter().map(String::as_ref).collect();
-        let exitstatus = stdecor::runner::run(&cli.prefix, cli.date, width, &command).await?;
+        let exitstatus = stdecor::runner::run(&cli.prefix, cli.date, width, &command)?;
         process::exit(exitstatus.code().unwrap_or(0));
     }
 }

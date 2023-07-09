@@ -5,4 +5,3 @@
 pub mod decor;
 pub mod pipe;
 pub mod runner;
-pub mod writer_async;

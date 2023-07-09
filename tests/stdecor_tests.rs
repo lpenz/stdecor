@@ -5,7 +5,6 @@
 use color_eyre::Result;
 
 use stdecor::decor::Decor;
-use stdecor::*;
 
 #[test]
 fn test_decor() -> Result<()> {
@@ -13,15 +12,6 @@ fn test_decor() -> Result<()> {
     assert_eq!(
         decor.decorate("abcd").collect::<Vec<_>>(),
         vec!["1234 abcd\n"]
-    );
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_writer_async() -> Result<()> {
-    assert_eq!(
-        &writer_async::decor_str("1234", false, "abcd").await?,
-        "1234 abcd\n"
     );
     Ok(())
 }
