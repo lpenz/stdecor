@@ -3,9 +3,9 @@
 // file 'LICENSE', which is part of this source code package.
 
 use color_eyre::{eyre::eyre, Result};
+use lineriver::{LineReadFd, LineReader};
 use polling::{Event, Poller};
-use std::io::{self, BufRead, BufReader, Write};
-use std::os::fd::AsRawFd;
+use std::io::{self, Write};
 use std::process::Command;
 use std::process::ExitStatus;
 use std::process::Stdio;
@@ -22,23 +22,13 @@ pub fn buildcmd(command: &[&str]) -> Command {
     cmd
 }
 
-trait ReadFd: std::io::Read + AsRawFd {}
-
-impl ReadFd for std::process::ChildStdout {}
-impl ReadFd for std::process::ChildStderr {}
-
-fn into_reader(r: impl ReadFd + 'static) -> BufReader<Box<dyn ReadFd>> {
-    BufReader::new(Box::new(r))
-}
-
-fn print_lines(decor: &Decor, buf: &[u8], key: usize) -> Result<()> {
-    let line_in = std::str::from_utf8(buf)?;
+fn print_lines(decor: &Decor, key: usize, line: &str) -> Result<()> {
     let mut output: Box<dyn Write> = if key == 0 {
         Box::new(io::stdout().lock())
     } else {
         Box::new(io::stderr().lock())
     };
-    for line_out in decor.decorate(line_in) {
+    for line_out in decor.decorate(line) {
         output.write_all(line_out.as_bytes())?;
     }
     output.flush()?;
@@ -49,65 +39,49 @@ fn print_lines(decor: &Decor, buf: &[u8], key: usize) -> Result<()> {
 pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> Result<ExitStatus> {
     let decor = Decor::new(prefix, date, width)?;
     let mut child = buildcmd(command).spawn()?;
-    let child_stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| eyre!("error taking stdout"))?;
-    let child_stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| eyre!("error taking stderr"))?;
+    let child_stdout = LineReader::new(
+        child
+            .stdout
+            .take()
+            .ok_or_else(|| eyre!("error taking stdout"))?,
+    )?;
+    let child_stderr = LineReader::new(
+        child
+            .stderr
+            .take()
+            .ok_or_else(|| eyre!("error taking stderr"))?,
+    )?;
     /* stdout and stderr have different types.
      * Let's erase their types to handle them with the
      * same code: */
-    let mut bufreaders = [
-        Some(into_reader(child_stdout)),
-        Some(into_reader(child_stderr)),
-    ];
+    let mut linereaders: Vec<Box<dyn LineReadFd>> =
+        vec![Box::new(child_stdout), Box::new(child_stderr)];
     let poller = Poller::new()?;
-    for (key, bufreader) in bufreaders.iter().enumerate() {
-        poller.add(
-            bufreader.as_ref().unwrap().get_ref().as_raw_fd(),
-            Event::readable(key),
-        )?;
+    for (key, linereader) in linereaders.iter().enumerate() {
+        poller.add(linereader.as_raw_fd(), Event::readable(key))?;
     }
     let mut events = Vec::new();
     loop {
         events.clear();
         poller.wait(&mut events, None)?;
         for ev in &events {
-            if let Some(mut bufreader) = bufreaders[ev.key].take() {
-                // ^ Remove the bufreader from the list to process it,
-                // add it back if ! eof.
-                let eof = bufreader.fill_buf()?.is_empty();
-                if !eof {
-                    loop {
-                        let buf = bufreader.buffer();
-                        match memchr::memchr(b'\n', buf) {
-                            Some(i) => {
-                                print_lines(&decor, &buf[0..i], ev.key)?;
-                                bufreader.consume(i + 1);
-                            }
-                            None => {
-                                // Buffer has no newline, break loop to read more.
-                                break;
-                            }
-                        }
-                    }
-                    poller.modify(bufreader.get_ref().as_raw_fd(), Event::readable(ev.key))?;
-                    bufreaders[ev.key] = Some(bufreader);
+            let linereader = &mut linereaders[ev.key];
+            if !linereader.eof() {
+                linereader.read_available()?;
+                for line in linereader.lines_get() {
+                    print_lines(&decor, ev.key, &line)?;
                 }
+                // Set interest in the next readability event from client.
+                poller.modify(linereaders[ev.key].as_raw_fd(), Event::readable(ev.key))?;
             }
         }
         if let Some(result) = child.try_wait()? {
             // Child exited, print all pending output.
             // Specially important if the command doesn't end its output with a newline.
-            for (key, bufreader_opt) in bufreaders.into_iter().enumerate() {
-                if let Some(bufreader) = bufreader_opt {
-                    for line in bufreader.lines() {
-                        let line = line?;
-                        print_lines(&decor, line.as_bytes(), key)?;
-                    }
+            for mut linereader in linereaders.into_iter() {
+                linereader.read_available()?;
+                for (key, line) in linereader.lines_get().into_iter().enumerate() {
+                    print_lines(&decor, key, &line)?;
                 }
             }
             return Ok(result);

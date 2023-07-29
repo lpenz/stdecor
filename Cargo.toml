@@ -20,6 +20,7 @@ tracing-subscriber = { version = "0.3.17", features = ["env-filter", "tracing-lo
 terminal_size = "0.2.6"
 polling = "2.8.0"
 memchr = "2.5.0"
+lineriver = "0.4.0"
 
 [dependencies.chrono]
 version = "0.4.26"

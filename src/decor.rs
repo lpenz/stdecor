@@ -48,8 +48,13 @@ impl Decor {
 
     pub fn decorate<'a>(&self, line: &'a str) -> impl iter::Iterator<Item = String> + 'a {
         let fullprefix = gen_fullprefix(&self.prefix, self.date);
-        LineWrapper::new(line, self.width.map(|w| w - fullprefix.len()))
-            .map(move |l| format!("{}{}\n", fullprefix, l))
+        LineWrapper::new(line, self.width.map(|w| w - fullprefix.len())).map(move |l| {
+            if l.ends_with('\n') {
+                format!("{}{}", fullprefix, l)
+            } else {
+                format!("{}{}\n", fullprefix, l)
+            }
+        })
     }
 }
 
