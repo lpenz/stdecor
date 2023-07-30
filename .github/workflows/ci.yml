@@ -15,7 +15,7 @@ jobs:
       publish_cratesio: true
       publish_github_release: true
       publish_github_release_files: |
-        target/release/stdecor
+        target/release/stdecor target/release/stdecor.1
       publish_packagecloud: true
       publish_packagecloud_repository: |
         ["debian/debian/bullseye",
