@@ -3,8 +3,8 @@
 // file 'LICENSE', which is part of this source code package.
 
 use color_eyre::{eyre::eyre, Result};
-use lineriver::{LineReadFd, LineReader};
-use polling::{Event, Poller};
+use lineriver::{LineReadRawAndFd, LineReader};
+use polling::{Event, Events, Poller};
 use std::io::{self, Write};
 use std::process::Command;
 use std::process::ExitStatus;
@@ -54,17 +54,19 @@ pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> 
     /* stdout and stderr have different types.
      * Let's erase their types to handle them with the
      * same code: */
-    let mut linereaders: Vec<Box<dyn LineReadFd>> =
+    let mut linereaders: Vec<Box<dyn LineReadRawAndFd>> =
         vec![Box::new(child_stdout), Box::new(child_stderr)];
     let poller = Poller::new()?;
     for (key, linereader) in linereaders.iter().enumerate() {
-        poller.add(linereader.as_raw_fd(), Event::readable(key))?;
+        unsafe {
+            poller.add(linereader.as_raw_fd(), Event::readable(key))?;
+        };
     }
-    let mut events = Vec::new();
+    let mut events = Events::new();
     loop {
         events.clear();
         poller.wait(&mut events, None)?;
-        for ev in &events {
+        for ev in events.iter() {
             let linereader = &mut linereaders[ev.key];
             if !linereader.eof() {
                 linereader.read_available()?;
@@ -72,7 +74,7 @@ pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> 
                     print_lines(&decor, ev.key, &line)?;
                 }
                 // Set interest in the next readability event from client.
-                poller.modify(linereaders[ev.key].as_raw_fd(), Event::readable(ev.key))?;
+                poller.modify(linereaders[ev.key].as_fd(), Event::readable(ev.key))?;
             }
         }
         if let Some(result) = child.try_wait()? {

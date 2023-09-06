@@ -13,17 +13,17 @@ categories = ["command-line-utilities"]
 keywords = ["command-line"]
 
 [dependencies]
-clap = { version = "4.3.8", features = ["derive"] }
+clap = { version = "4.4.2", features = ["derive"] }
 color-eyre = "0.6.2"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "tracing-log"] }
 terminal_size = "0.2.6"
-polling = "2.8.0"
-memchr = "2.5.0"
-lineriver = "0.4.0"
+polling = "3.0.0"
+memchr = "2.6.3"
+lineriver = "0.7.0"
 
 [dependencies.chrono]
-version = "0.4.26"
+version = "0.4.29"
 default-features = false
 features = ["clock"]
 
