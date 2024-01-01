@@ -22,7 +22,7 @@ pub fn buildcmd(command: &[&str]) -> Command {
     cmd
 }
 
-fn print_lines(decor: &Decor, key: usize, line: &str) -> Result<()> {
+fn print_line(decor: &Decor, key: usize, line: &str) -> Result<()> {
     let mut output: Box<dyn Write> = if key == 0 {
         Box::new(io::stdout().lock())
     } else {
@@ -32,6 +32,25 @@ fn print_lines(decor: &Decor, key: usize, line: &str) -> Result<()> {
         output.write_all(line_out.as_bytes())?;
     }
     output.flush()?;
+    Ok(())
+}
+
+fn read_print_lines(
+    decor: &Decor,
+    key: usize,
+    linereader: &mut Box<dyn LineReadRawAndFd>,
+) -> Result<()> {
+    linereader.read_available()?;
+    for line in linereader.lines_get() {
+        print_line(&decor, key, &line)?;
+    }
+    Ok(())
+}
+
+fn read_print_flush(decor: &Decor, linereaders: Vec<Box<dyn LineReadRawAndFd>>) -> Result<()> {
+    for (key, mut linereader) in linereaders.into_iter().enumerate() {
+        read_print_lines(decor, key, &mut linereader)?;
+    }
     Ok(())
 }
 
@@ -69,23 +88,22 @@ pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> 
         for ev in events.iter() {
             let linereader = &mut linereaders[ev.key];
             if !linereader.eof() {
-                linereader.read_available()?;
-                for line in linereader.lines_get() {
-                    print_lines(&decor, ev.key, &line)?;
-                }
+                read_print_lines(&decor, ev.key, linereader)?;
                 // Set interest in the next readability event from client.
                 poller.modify(linereaders[ev.key].as_fd(), Event::readable(ev.key))?;
             }
         }
         if let Some(result) = child.try_wait()? {
             // Child exited, print all pending output.
-            // Specially important if the command doesn't end its output with a newline.
-            for mut linereader in linereaders.into_iter() {
-                linereader.read_available()?;
-                for (key, line) in linereader.lines_get().into_iter().enumerate() {
-                    print_lines(&decor, key, &line)?;
-                }
-            }
+            // Specially important if the command doesn't end its
+            // output with a newline.
+            read_print_flush(&decor, linereaders)?;
+            return Ok(result);
+        } else if linereaders.iter().all(|lr| lr.eof()) {
+            // Both stdout and stderr at eof, nothing to do except
+            // wait for child process.
+            let result = child.wait()?;
+            read_print_flush(&decor, linereaders)?;
             return Ok(result);
         }
     }
