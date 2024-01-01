@@ -14,7 +14,7 @@
       rec {
         packages.default = pkgs.rustPlatform.buildRustPackage {
           pname = "stdecor";
-          version = "0.1.9";
+          version = "0.1.10";
           src = self;
           cargoLock.lockFile = ./Cargo.lock;
         };
