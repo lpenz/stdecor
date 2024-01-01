@@ -9,10 +9,11 @@ use std::io::{self, Write};
 use std::process::Command;
 use std::process::ExitStatus;
 use std::process::Stdio;
+use tracing::info;
 
 use crate::decor::Decor;
 
-#[tracing::instrument]
+#[tracing::instrument(ret)]
 pub fn buildcmd(command: &[&str]) -> Command {
     let mut cmd = Command::new(command[0]);
     cmd.args(command.iter().skip(1))
@@ -22,6 +23,7 @@ pub fn buildcmd(command: &[&str]) -> Command {
     cmd
 }
 
+#[tracing::instrument(level = "trace", err)]
 fn print_line(decor: &Decor, key: usize, line: &str) -> Result<()> {
     let mut output: Box<dyn Write> = if key == 0 {
         Box::new(io::stdout().lock())
@@ -35,6 +37,7 @@ fn print_line(decor: &Decor, key: usize, line: &str) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(level = "trace", skip(decor, linereader), err)]
 fn read_print_lines(
     decor: &Decor,
     key: usize,
@@ -47,6 +50,7 @@ fn read_print_lines(
     Ok(())
 }
 
+#[tracing::instrument(skip_all, err)]
 fn read_print_flush(decor: &Decor, linereaders: Vec<Box<dyn LineReadRawAndFd>>) -> Result<()> {
     for (key, mut linereader) in linereaders.into_iter().enumerate() {
         read_print_lines(decor, key, &mut linereader)?;
@@ -54,8 +58,14 @@ fn read_print_flush(decor: &Decor, linereaders: Vec<Box<dyn LineReadRawAndFd>>) 
     Ok(())
 }
 
-#[tracing::instrument]
+#[tracing::instrument(skip_all, ret, err)]
 pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> Result<ExitStatus> {
+    info!(
+        prefix = prefix,
+        date = date,
+        width = width,
+        command = ?command
+    );
     let decor = Decor::new(prefix, date, width)?;
     let mut child = buildcmd(command).spawn()?;
     let child_stdout = LineReader::new(
@@ -91,18 +101,23 @@ pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> 
                 read_print_lines(&decor, ev.key, linereader)?;
                 // Set interest in the next readability event from client.
                 poller.modify(linereaders[ev.key].as_fd(), Event::readable(ev.key))?;
+            } else {
+                info!(stream = ev.key, "eof");
             }
         }
         if let Some(result) = child.try_wait()? {
             // Child exited, print all pending output.
             // Specially important if the command doesn't end its
             // output with a newline.
+            info!(result = ?result, "from child.try_wait");
             read_print_flush(&decor, linereaders)?;
             return Ok(result);
         } else if linereaders.iter().all(|lr| lr.eof()) {
             // Both stdout and stderr at eof, nothing to do except
             // wait for child process.
+            info!("both streams hit eof, waiting for child");
             let result = child.wait()?;
+            info!(result = ?result, "from child.wait");
             read_print_flush(&decor, linereaders)?;
             return Ok(result);
         }

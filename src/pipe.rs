@@ -7,7 +7,7 @@ use std::io::{self, BufRead, Write};
 
 use crate::decor::Decor;
 
-#[tracing::instrument]
+#[tracing::instrument(err)]
 pub fn pipe(prefix: &str, date: bool, width: Option<usize>) -> Result<()> {
     let decor = Decor::new(prefix, date, width)?;
     let stdin = io::stdin().lock();

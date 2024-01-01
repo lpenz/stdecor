@@ -27,7 +27,7 @@ fn gen_fullprefix(prefix: &str, date: bool) -> String {
 }
 
 impl Decor {
-    #[tracing::instrument]
+    #[tracing::instrument(ret, err)]
     pub fn new(prefix: &str, date: bool, width: Option<usize>) -> Result<Self> {
         if let Some(w) = width {
             let prefixlen = gen_fullprefix(prefix, date).len();
@@ -46,6 +46,7 @@ impl Decor {
         })
     }
 
+    #[tracing::instrument(level = "trace", ret)]
     pub fn decorate<'a>(&self, line: &'a str) -> impl iter::Iterator<Item = String> + 'a {
         let fullprefix = gen_fullprefix(&self.prefix, self.date);
         LineWrapper::new(line, self.width.map(|w| w - fullprefix.len())).map(move |l| {
@@ -65,6 +66,7 @@ pub struct LineWrapper<'a> {
 }
 
 impl<'a> LineWrapper<'a> {
+    #[tracing::instrument(level = "trace", ret)]
     pub fn new(original: &'a str, width: Option<usize>) -> Self {
         Self {
             rest: Some(original),
@@ -75,6 +77,8 @@ impl<'a> LineWrapper<'a> {
 
 impl<'a> Iterator for LineWrapper<'a> {
     type Item = &'a str;
+
+    #[tracing::instrument(level = "trace", ret)]
     fn next(&mut self) -> Option<Self::Item> {
         let rest = self.rest.as_mut()?;
         if let Some(width) = self.width {
