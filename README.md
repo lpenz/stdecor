@@ -12,7 +12,9 @@ part of a pipe. When calling a program, it can decorate stdout and
 stderr differently.
 
 stdecor is specially useful when running multiple jobs in the same
-shell.
+shell. It can be used to build scripts like the following:
+
+![demo-ping](demos/demo-ping.gif)
 
 
 ## Installation
