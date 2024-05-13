@@ -21,8 +21,10 @@ fn gen_fullprefix(prefix: &str, date: bool) -> String {
         let date = now.format("%Y-%m-%dT%H:%M:%S%.3f%:z ").to_string();
         fullprefix.push_str(&date);
     }
-    fullprefix.push_str(prefix);
-    fullprefix.push(' ');
+    if !prefix.is_empty() {
+        fullprefix.push_str(prefix);
+        fullprefix.push(' ');
+    }
     fullprefix
 }
 
