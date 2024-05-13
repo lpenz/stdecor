@@ -45,7 +45,7 @@ fn read_print_lines(
 ) -> Result<()> {
     linereader.read_available()?;
     for line in linereader.lines_get() {
-        print_line(&decor, key, &line)?;
+        print_line(decor, key, &line)?;
     }
     Ok(())
 }

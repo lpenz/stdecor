@@ -18,7 +18,7 @@ fn gen_fullprefix(prefix: &str, date: bool) -> String {
     let mut fullprefix = String::new();
     if date {
         let now = chrono::offset::Local::now();
-        let date = now.format("%Y-%m-%d %H:%M:%S%.6f ").to_string();
+        let date = now.format("%Y-%m-%dT%H:%M:%S%.3f%:z ").to_string();
         fullprefix.push_str(&date);
     }
     fullprefix.push_str(prefix);
