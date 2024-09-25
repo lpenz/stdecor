@@ -2,7 +2,7 @@
   description = "Run a process with a decorated stdout/stderr";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -14,7 +14,7 @@
       rec {
         packages.default = pkgs.rustPlatform.buildRustPackage {
           pname = "stdecor";
-          version = "0.1.11";
+          version = "0.1.12";
           src = self;
           cargoLock.lockFile = ./Cargo.lock;
         };
