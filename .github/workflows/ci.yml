@@ -1,6 +1,9 @@
 ---
 name: CI
-on: [ workflow_dispatch, push, pull_request ]
+on:  # yamllint disable-line rule:truthy
+  - workflow_dispatch
+  - push
+  - pull_request
 jobs:
   omnilint:
     uses: lpenz/omnilint/.github/workflows/omnilint.yml@v0.5.2
@@ -30,7 +33,7 @@ jobs:
       - run: nix build
       - run: nix flake check
   publish-cachix:
-    needs: [ omnilint, rust, nix ]
+    needs: [omnilint, rust, nix]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
