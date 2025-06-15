@@ -13,22 +13,22 @@ categories = ["command-line-utilities"]
 keywords = ["command-line"]
 
 [dependencies]
-clap = { version = "4.5.37", features = ["derive"] }
-color-eyre = "0.6.3"
+clap = { version = "4.5.40", features = ["derive"] }
+color-eyre = "0.6.5"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "tracing-log"] }
 terminal_size = "0.4.2"
-polling = "3.7.4"
-memchr = "2.7.4"
+polling = "3.8.0"
+memchr = "2.7.5"
 lineriver = "0.7.1"
 
 [dependencies.chrono]
-version = "0.4.40"
+version = "0.4.41"
 default-features = false
 features = ["clock"]
 
 [build-dependencies]
-color-eyre = "0.6.3"
+color-eyre = "0.6.5"
 man = "0.3.0"
 
 [package.metadata.deb]
