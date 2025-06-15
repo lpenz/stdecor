@@ -5,7 +5,7 @@
 use clap::Parser;
 use std::error::Error;
 use std::process;
-use terminal_size::{terminal_size, Width};
+use terminal_size::{Width, terminal_size};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

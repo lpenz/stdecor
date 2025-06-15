@@ -3,7 +3,7 @@
 // file 'LICENSE', which is part of this source code package.
 
 use chrono;
-use color_eyre::{eyre::eyre, Result};
+use color_eyre::{Result, eyre::eyre};
 use std::iter;
 
 #[derive(Debug)]
