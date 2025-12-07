@@ -1,9 +1,6 @@
 ---
 name: CI
-on:  # yamllint disable-line rule:truthy
-  - workflow_dispatch
-  - push
-  - pull_request
+on: [workflow_dispatch, push, pull_request]  # yamllint disable-line rule:truthy
 jobs:
   omnilint:
     uses: lpenz/omnilint/.github/workflows/omnilint.yml@v0.5.2
@@ -28,8 +25,8 @@ jobs:
   nix:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5.0.0
-      - uses: cachix/install-nix-action@v31.6.1
+      - uses: actions/checkout@v6.0.1
+      - uses: cachix/install-nix-action@v31.8.4
         with:
           nix_path: nixpkgs=channel:nixos-unstable
       - run: nix build
@@ -38,18 +35,18 @@ jobs:
     needs: [omnilint, rust, nix]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5.0.0
+      - uses: actions/checkout@v6.0.1
         with:
           fetch-depth: 0
       - id: version
-        uses: docker://lpenz/ghaction-version-gen:0.17.3
-      - uses: cachix/install-nix-action@v31.6.1
+        uses: docker://lpenz/ghaction-version-gen:0.18.0
+      - uses: cachix/install-nix-action@v31.8.4
         with:
           nix_path: nixpkgs=channel:nixos-unstable
       - uses: cachix/cachix-action@v16
         with:
           skipPush: ${{ steps.version.outputs.version_commit == '' }}
           name: lpenz
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - run: nix build
       - run: nix flake check
