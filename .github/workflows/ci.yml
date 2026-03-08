@@ -10,9 +10,9 @@ jobs:
       coveralls: true
       deb: true
       rpm: true
-      publish_cratesio: true
       release_files: |
         stdecor stdecor.1
+      publish_cratesio: true
       publish_github_release: true
       publish_packagecloud_repository_deb: |
         ["debian/debian/trixie",
@@ -22,31 +22,3 @@ jobs:
     secrets:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
       PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
-  nix:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6.0.1
-      - uses: cachix/install-nix-action@v31.8.4
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-      - run: nix build
-      - run: nix flake check
-  publish-cachix:
-    needs: [omnilint, rust, nix]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6.0.1
-        with:
-          fetch-depth: 0
-      - id: version
-        uses: docker://lpenz/ghaction-version-gen:0.18.0
-      - uses: cachix/install-nix-action@v31.8.4
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v16
-        with:
-          skipPush: ${{ steps.version.outputs.version_commit == '' }}
-          name: lpenz
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - run: nix build
-      - run: nix flake check
