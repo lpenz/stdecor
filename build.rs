@@ -11,7 +11,7 @@ use color_eyre::{Result, eyre::eyre};
 use man::prelude::*;
 use std::env;
 use std::error::Error;
-use std::fs::{self, File};
+use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::path;
 
@@ -86,7 +86,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Generate shell completions:
     let mut cmd = Cli::command();
     generate_to(Bash, &mut cmd, "stdecor", &outdir)?;
-    generate_to(Fish, &mut cmd, "stdecor", &outdir)?;
+    let path = generate_to(Fish, &mut cmd, "stdecor", &outdir)?;
+    let mut fd = OpenOptions::new().append(true).open(path)?;
+    writeln!(fd, "complete -c stdecor --wraps command")?;
+    writeln!(fd, "complete -c stdecor --no-files")?;
     generate_to(Zsh, &mut cmd, "stdecor", &outdir)?;
     Ok(())
 }
