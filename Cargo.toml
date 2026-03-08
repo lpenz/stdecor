@@ -28,6 +28,8 @@ default-features = false
 features = ["clock"]
 
 [build-dependencies]
+clap = { version = "4.5.60", features = ["derive"] }
+clap_complete = "4.5.66"
 color-eyre = "0.6.5"
 man = "0.3.0"
 
@@ -42,6 +44,9 @@ assets = [
     ["LICENSE", "usr/share/doc/stdecor/", "644"],
     ["AUTHORS", "usr/share/doc/stdecor/", "644"],
     ["README.md", "usr/share/doc/stdecor/", "644"],
+    ["target/release/stdecor.bash", "/usr/share/bash-completion/completions/", "644"],
+    ["target/release/_stdecor", "/usr/share/zsh/site-functions/", "644"],
+    ["target/release/stdecor.fish", "/usr/share/fish/vendor_completions.d/", "644"],
 ]
 
 [package.metadata.generate-rpm]
@@ -51,4 +56,7 @@ assets = [
     { source = "LICENSE", dest = "/usr/share/doc/stdecor/", mode = "644" },
     { source = "AUTHORS", dest = "/usr/share/doc/stdecor/", mode = "644" },
     { source = "README.md", dest = "/usr/share/doc/stdecor/", mode = "644" },
+    { source = "target/release/stdecor.bash", dest = "/usr/share/bash-completion/completions/", mode = "644" },
+    { source = "target/release/_stdecor", dest = "/usr/share/zsh/site-functions/", mode = "644" },
+    { source = "target/release/stdecor.fish", dest = "/usr/share/fish/vendor_completions.d/", mode = "644" },
 ]

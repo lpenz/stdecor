@@ -2,6 +2,11 @@
 // This file is subject to the terms and conditions defined in
 // file 'LICENSE', which is part of this source code package.
 
+use clap::CommandFactory;
+use clap_complete::generate_to;
+use clap_complete::shells::Bash;
+use clap_complete::shells::Fish;
+use clap_complete::shells::Zsh;
 use color_eyre::{Result, eyre::eyre};
 use man::prelude::*;
 use std::env;
@@ -9,6 +14,8 @@ use std::error::Error;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path;
+
+include!("src/cli.rs");
 
 fn generate_man_page<P: AsRef<path::Path>>(outdir: P) -> Result<()> {
     let outdir = outdir.as_ref();
@@ -40,7 +47,8 @@ fn generate_man_page<P: AsRef<path::Path>>(outdir: P) -> Result<()> {
                 .long("--version")
                 .help("Prints version information"),
         )
-        .arg(Arg::new("[ COMMAND ARGS ]"))
+        .arg(Arg::new("COMMAND"))
+        .arg(Arg::new("[ ARGS ]"))
         .description(r#"stdecor is a stream decorator that can add a prefix to each line, the date, etc. It can be used via a pipe or it can the command to be decorater. In the latter case it can decorate stdout and stderr in different ways.
 
 stdecor is specially useful when running multiple jobs in the same shell.
@@ -75,5 +83,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     // .
     // (either target/release or target/build)
     generate_man_page(&outdir)?;
+    // Generate shell completions:
+    let mut cmd = Cli::command();
+    generate_to(Bash, &mut cmd, "stdecor", &outdir)?;
+    generate_to(Fish, &mut cmd, "stdecor", &outdir)?;
+    generate_to(Zsh, &mut cmd, "stdecor", &outdir)?;
     Ok(())
 }

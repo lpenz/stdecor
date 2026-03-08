@@ -7,24 +7,10 @@ use std::error::Error;
 use std::process;
 use terminal_size::{Width, terminal_size};
 
-pub mod decor;
-pub mod pipe;
-pub mod runner;
-
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Cli {
-    /// Add a default prefix to both stdout and stderr
-    #[arg(short, long, default_value = "")]
-    pub prefix: String,
-
-    /// Add the date and time as a prefix to both stdout and stderr
-    #[arg(short, long, default_value_t = false)]
-    pub date: bool,
-
-    /// The command to run; use stdin if empty (pipe mode)
-    pub command: Vec<String>,
-}
+mod cli;
+mod decor;
+mod pipe;
+mod runner;
 
 pub fn main() -> Result<(), Box<dyn Error>> {
     color_eyre::install()?;
@@ -32,7 +18,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .with_span_events(tracing_subscriber::fmt::format::FmtSpan::ACTIVE)
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
-    let cli = Cli::parse();
+    let cli = cli::Cli::parse();
     let width = if let Some((Width(w), _)) = terminal_size() {
         Some(w as usize)
     } else {
@@ -45,5 +31,31 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         let command: Vec<&str> = cli.command.iter().map(String::as_ref).collect();
         let exitstatus = runner::run(&cli.prefix, cli.date, width, &command)?;
         process::exit(exitstatus.code().unwrap_or(0));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::decor::Decor;
+    use color_eyre::Result;
+
+    #[test]
+    fn test_decor() -> Result<()> {
+        let decor = Decor::new("1234", false, None)?;
+        assert_eq!(
+            decor.decorate("abcd").collect::<Vec<_>>(),
+            vec!["1234 abcd\n"]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_decor_wrap() -> Result<()> {
+        let decor = Decor::new("1234", false, Some(7))?;
+        assert_eq!(
+            decor.decorate("abcde").collect::<Vec<_>>(),
+            vec!["1234 ab\n", "1234 cd\n", "1234 e\n"]
+        );
+        Ok(())
     }
 }
