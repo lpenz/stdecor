@@ -11,48 +11,68 @@ use color_eyre::{Result, eyre::eyre};
 use man::prelude::*;
 use std::env;
 use std::error::Error;
-use std::fs::{self, File, OpenOptions};
+use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path;
 
 include!("src/cli.rs");
 
 fn generate_man_page<P: AsRef<path::Path>>(outdir: P) -> Result<()> {
+    let cmd = Cli::command();
+    let name = cmd
+        .get_display_name()
+        .unwrap_or_else(|| cmd.get_name())
+        .to_owned();
     let outdir = outdir.as_ref();
-    let man_path = outdir.join("stdecor.1");
-    let manpage = Manual::new("stdecor")
-        .about("Run a command with a decorated stdout/stderr")
-        .author(Author::new("Leandro Lisboa Penz").email("lpenz@lpenz.org"))
-        .flag(
-            Flag::new()
-                .short("-p")
-                .long("--prefix")
-                .help("Add a default prefix to both stdout and stderr"),
-        )
-        .flag(
-            Flag::new()
-                .short("-d")
-                .long("--date")
-                .help("Add the date and time as a prefix to both stdout and stderr"),
-        )
-        .flag(
-            Flag::new()
-                .short("-h")
-                .long("--help")
-                .help("Prints help information"),
-        )
-        .flag(
-            Flag::new()
-                .short("-V")
-                .long("--version")
-                .help("Prints version information"),
-        )
-        .arg(Arg::new("COMMAND"))
-        .arg(Arg::new("[ ARGS ]"))
-        .description(r#"stdecor is a stream decorator that can add a prefix to each line, the date, etc. It can be used via a pipe or it can the command to be decorater. In the latter case it can decorate stdout and stderr in different ways.
-
-stdecor is specially useful when running multiple jobs in the same shell.
-"#)
+    let man_path = outdir.join(format!("{}.1", name));
+    let mut manpage = Manual::new(&name);
+    manpage = manpage.about(
+        cmd.get_about()
+            .map(|s| format!("{}", s))
+            .unwrap_or_default(),
+    );
+    manpage = manpage.description(
+        cmd.get_long_about()
+            .map(|s| format!("{}", s))
+            .unwrap_or_default(),
+    );
+    manpage = manpage.author(Author::new(cmd.get_author().unwrap_or_default()));
+    manpage = cmd.get_opts().fold(manpage, |manpage, a| {
+        let mut flag = Flag::new();
+        if let Some(short) = a.get_short() {
+            flag = flag.short(&format!("-{}", short));
+        }
+        if let Some(long) = a.get_long() {
+            flag = flag.long(&format!("--{}", long));
+        }
+        if let Some(help) = a.get_help() {
+            flag = flag.help(&format!("{}", help));
+        }
+        manpage.flag(flag)
+    });
+    manpage = manpage.flag(
+        Flag::new()
+            .short("-h")
+            .long("--help")
+            .help("Print help (see a summary with '-h')"),
+    );
+    manpage = manpage.flag(
+        Flag::new()
+            .short("-V")
+            .long("--version")
+            .help("Print version"),
+    );
+    manpage = cmd.get_positionals().fold(manpage, |manpage, a| {
+        let id = format!("{}", a.get_id());
+        let arg = Arg::new(&id);
+        let mut flag = Flag::new();
+        flag = flag.long(&id);
+        if let Some(help) = a.get_help() {
+            flag = flag.help(&format!("{}", help));
+        }
+        manpage.flag(flag).arg(arg)
+    });
+    manpage = manpage
         .example(
             Example::new()
                 .text(r#"Run 2 "find" commands for different directories"#)
@@ -62,9 +82,8 @@ stdecor is specially useful when running multiple jobs in the same shell.
             Example::new()
                 .text("Update 2 docker images, showing the dates")
                 .command("stdecor -d -p [bookworm] docker pull debian:bookworm & stdecor -d -p [stretch] docker pull debian:stretch & wait"),
-        )
-        .render();
-    File::create(man_path)?.write_all(manpage.as_bytes())?;
+        );
+    std::fs::write(man_path, manpage.render())?;
     Ok(())
 }
 
