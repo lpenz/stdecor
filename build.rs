@@ -25,53 +25,8 @@ fn generate_man_page<P: AsRef<path::Path>>(outdir: P) -> Result<()> {
         .to_owned();
     let outdir = outdir.as_ref();
     let man_path = outdir.join(format!("{}.1", name));
-    let mut manpage = Manual::new(&name);
-    manpage = manpage.about(
-        cmd.get_about()
-            .map(|s| format!("{}", s))
-            .unwrap_or_default(),
-    );
-    manpage = manpage.description(
-        cmd.get_long_about()
-            .map(|s| format!("{}", s))
-            .unwrap_or_default(),
-    );
-    manpage = manpage.author(Author::new(cmd.get_author().unwrap_or_default()));
-    manpage = cmd.get_opts().fold(manpage, |manpage, a| {
-        let mut flag = Flag::new();
-        if let Some(short) = a.get_short() {
-            flag = flag.short(&format!("-{}", short));
-        }
-        if let Some(long) = a.get_long() {
-            flag = flag.long(&format!("--{}", long));
-        }
-        if let Some(help) = a.get_help() {
-            flag = flag.help(&format!("{}", help));
-        }
-        manpage.flag(flag)
-    });
-    manpage = manpage.flag(
-        Flag::new()
-            .short("-h")
-            .long("--help")
-            .help("Print help (see a summary with '-h')"),
-    );
-    manpage = manpage.flag(
-        Flag::new()
-            .short("-V")
-            .long("--version")
-            .help("Print version"),
-    );
-    manpage = cmd.get_positionals().fold(manpage, |manpage, a| {
-        let id = format!("{}", a.get_id());
-        let arg = Arg::new(&id);
-        let mut flag = Flag::new();
-        flag = flag.long(&id);
-        if let Some(help) = a.get_help() {
-            flag = flag.help(&format!("{}", help));
-        }
-        manpage.flag(flag).arg(arg)
-    });
+    let manual = clap2man::Manual::from(&cmd);
+    let mut manpage: man::Manual = manual.into();
     manpage = manpage
         .example(
             Example::new()
