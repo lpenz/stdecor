@@ -102,7 +102,9 @@ pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> 
             if !linereader.eof() {
                 read_print_lines(&decor, ev.key, linereader)?;
                 // Set interest in the next readability event from client.
-                poller.modify(linereaders[ev.key].as_fd(), Event::readable(ev.key))?;
+                // Ignore unexpected errors — the read fd should remain
+                // valid but this is defensive against OS-level issues.
+                let _ = poller.modify(linereaders[ev.key].as_fd(), Event::readable(ev.key));
             } else {
                 info!(stream = ev.key, "eof");
             }
