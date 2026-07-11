@@ -58,4 +58,14 @@ mod tests {
         );
         Ok(())
     }
+
+    #[test]
+    fn test_decor_wrap_multibyte() -> Result<()> {
+        let decor = Decor::new("p", false, Some(5))?;
+        assert_eq!(
+            decor.decorate("日本語").collect::<Vec<_>>(),
+            vec!["p 日\n", "p 本\n", "p 語\n"]
+        );
+        Ok(())
+    }
 }

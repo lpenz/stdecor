@@ -84,8 +84,12 @@ impl<'a> Iterator for LineWrapper<'a> {
         let rest = self.rest.as_mut()?;
         if let Some(width) = self.width {
             if rest.len() >= width {
-                let current = &rest[0..width];
-                *rest = &rest[width..];
+                let end = rest.floor_char_boundary(width);
+                let current = &rest[0..end];
+                *rest = &rest[end..];
+                if rest.is_empty() {
+                    self.rest = None;
+                }
                 Some(current)
             } else {
                 self.rest.take()
