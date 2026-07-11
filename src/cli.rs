@@ -7,11 +7,11 @@ use clap::Parser;
 /// Run a command with a decorated stdout/stderr
 ///
 /// stdecor is a stream decorator that can add a prefix to each line,
-/// the date, etc. It can be used via a pipe or it can the command to
-/// be decorater. In the latter case it can decorate stdout and stderr
+/// the date, etc. It can be used via a pipe or it can run the command to
+/// be decorated. In the latter case it can decorate stdout and stderr
 /// in different ways.
 ///
-/// stdecor is specially useful when running multiple jobs in the same
+/// stdecor is especially useful when running multiple jobs in the same
 /// shell.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about)]
