@@ -13,24 +13,24 @@ categories = ["command-line-utilities"]
 keywords = ["command-line"]
 
 [dependencies]
-clap = { version = "4.5.60", features = ["derive"] }
+clap = { version = "4.6.1", features = ["derive"] }
 color-eyre = "0.6.5"
 tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.22", features = ["env-filter", "tracing-log"] }
-terminal_size = "0.4.3"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "tracing-log"] }
+terminal_size = "0.4.4"
 polling = "3.11.0"
-memchr = "2.8.0"
+memchr = "2.8.3"
 lineriver = "0.7.2"
 
 [dependencies.chrono]
-version = "0.4.44"
+version = "0.4.45"
 default-features = false
 features = ["clock"]
 
 [build-dependencies]
-clap = { version = "4.5.60", features = ["derive"] }
+clap = { version = "4.6.1", features = ["derive"] }
 clap2man = "0.1.1"
-clap_complete = "4.5.66"
+clap_complete = "4.6.7"
 color-eyre = "0.6.5"
 man = "0.3.0"
 
