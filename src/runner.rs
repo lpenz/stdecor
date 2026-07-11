@@ -87,6 +87,8 @@ pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> 
         vec![Box::new(child_stdout), Box::new(child_stderr)];
     let poller = Poller::new()?;
     for (key, linereader) in linereaders.iter().enumerate() {
+        // SAFETY: The raw fd is valid for the lifetime of linereader,
+        // and linereaders outlives the poller.
         unsafe {
             poller.add(linereader.as_raw_fd(), Event::readable(key))?;
         };

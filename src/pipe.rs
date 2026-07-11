@@ -11,8 +11,8 @@ use crate::decor::Decor;
 pub fn pipe(prefix: &str, date: bool, width: Option<usize>) -> Result<()> {
     let decor = Decor::new(prefix, date, width)?;
     let stdin = io::stdin().lock();
+    let mut stdout = io::stdout().lock();
     for line_in in stdin.lines() {
-        let mut stdout = io::stdout().lock();
         let line_in = line_in?;
         for line_out in decor.decorate(&line_in) {
             stdout.write_all(line_out.as_bytes())?;
