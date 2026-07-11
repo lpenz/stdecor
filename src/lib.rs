@@ -61,7 +61,8 @@ mod tests {
 
     #[test]
     fn test_decor_wrap_multibyte() -> Result<()> {
-        let decor = Decor::new("p", false, Some(5))?;
+        // "p " is 2 chars, width 3 → 1 char of content per line
+        let decor = Decor::new("p", false, Some(3))?;
         assert_eq!(
             decor.decorate("日本語").collect::<Vec<_>>(),
             vec!["p 日\n", "p 本\n", "p 語\n"]
@@ -85,6 +86,14 @@ mod tests {
         // "日本語" = 9 bytes, 3 chars — too wide for terminal of 3
         let result = Decor::new("日本語", false, Some(3));
         assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_decor_multibyte_no_unnecessary_wrap() -> Result<()> {
+        // "日本" = 6 bytes, 2 chars — fits in width 5, no wrapping needed
+        let decor = Decor::new("", false, Some(5))?;
+        assert_eq!(decor.decorate("日本").collect::<Vec<_>>(), vec!["日本\n"]);
         Ok(())
     }
 }

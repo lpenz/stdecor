@@ -83,16 +83,19 @@ impl<'a> Iterator for LineWrapper<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let rest = self.rest.as_mut()?;
         if let Some(width) = self.width {
-            if rest.len() >= width {
-                let end = rest.floor_char_boundary(width);
-                let current = &rest[0..end];
-                *rest = &rest[end..];
-                if rest.is_empty() {
-                    self.rest = None;
-                }
-                Some(current)
+            let end = rest
+                .char_indices()
+                .nth(width)
+                .map_or(rest.len(), |(i, _)| i);
+            let current = &rest[0..end];
+            *rest = &rest[end..];
+            if rest.is_empty() {
+                self.rest = None;
+            }
+            if current.is_empty() {
+                None
             } else {
-                self.rest.take()
+                Some(current)
             }
         } else {
             self.rest.take()
