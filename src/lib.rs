@@ -68,4 +68,23 @@ mod tests {
         );
         Ok(())
     }
+
+    #[test]
+    fn test_decor_multibyte_prefix() -> Result<()> {
+        // "日" is 3 bytes but 1 char — prefix fits in width 5
+        let decor = Decor::new("日", false, Some(5))?;
+        assert_eq!(
+            decor.decorate("abcde").collect::<Vec<_>>(),
+            vec!["日 abc\n", "日 de\n"]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_decor_multibyte_prefix_overflow() -> Result<()> {
+        // "日本語" = 9 bytes, 3 chars — too wide for terminal of 3
+        let result = Decor::new("日本語", false, Some(3));
+        assert!(result.is_err());
+        Ok(())
+    }
 }

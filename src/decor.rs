@@ -31,11 +31,11 @@ impl Decor {
     #[tracing::instrument(ret, err)]
     pub fn new(prefix: &str, date: bool, width: Option<usize>) -> Result<Self> {
         if let Some(w) = width {
-            let prefixlen = gen_fullprefix(prefix, date).len();
+            let prefixlen = gen_fullprefix(prefix, date).chars().count();
             if prefixlen >= w {
                 return Err(eyre!(
-                    "prefix with length {} is too big for line width {}",
-                    prefix.len(),
+                    "prefix with {} chars is too big for line width {}",
+                    prefixlen,
                     w
                 ));
             }
@@ -50,7 +50,7 @@ impl Decor {
     #[tracing::instrument(level = "trace", ret)]
     pub fn decorate<'a>(&self, line: &'a str) -> impl iter::Iterator<Item = String> + 'a {
         let fullprefix = gen_fullprefix(&self.prefix, self.date);
-        LineWrapper::new(line, self.width.map(|w| w - fullprefix.len())).map(move |l| {
+        LineWrapper::new(line, self.width.map(|w| w - fullprefix.chars().count())).map(move |l| {
             if l.ends_with('\n') {
                 format!("{}{}", fullprefix, l)
             } else {
