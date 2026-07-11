@@ -17,17 +17,17 @@ use std::path;
 
 include!("src/cli.rs");
 
-fn generate_man_page<P: AsRef<path::Path>>(outdir: P) -> Result<()> {
-    let cmd = Cli::command();
-    let name = cmd
-        .get_display_name()
-        .unwrap_or_else(|| cmd.get_name())
-        .to_owned();
+fn generate_man_page<P: AsRef<path::Path>>(
+    cmd: &clap::Command,
+    name: &str,
+    outdir: P,
+) -> Result<()> {
     let outdir = outdir.as_ref();
     let man_path = outdir.join(format!("{}.1", name));
-    let manual = clap2man::Manual::from(&cmd);
-    let mut manpage: man::Manual = manual.into();
-    manpage = manpage
+    let manpage: Manual = clap2man::Manual::try_from(cmd)
+        .map_err(|e| eyre!(e))?
+        .into();
+    let manpage = manpage
         .example(
             Example::new()
                 .text(r#"Run 2 "find" commands for different directories"#)
@@ -44,10 +44,15 @@ fn generate_man_page<P: AsRef<path::Path>>(outdir: P) -> Result<()> {
 
 fn main() -> Result<(), Box<dyn Error>> {
     color_eyre::install()?;
+    let cmd = Cli::command();
+    let name = cmd
+        .get_display_name()
+        .unwrap_or_else(|| cmd.get_name())
+        .to_owned();
     let mut outdir =
         path::PathBuf::from(env::var_os("OUT_DIR").ok_or_else(|| eyre!("error getting OUT_DIR"))?);
     fs::create_dir_all(&outdir)?;
-    generate_man_page(&outdir)?;
+    generate_man_page(&cmd, &name, &outdir)?;
     // build/stdecor-*/out
     outdir.pop();
     // build/stdecor-*
@@ -56,14 +61,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     outdir.pop();
     // .
     // (either target/release or target/build)
-    generate_man_page(&outdir)?;
+    generate_man_page(&cmd, &name, &outdir)?;
     // Generate shell completions:
-    let mut cmd = Cli::command();
-    generate_to(Bash, &mut cmd, "stdecor", &outdir)?;
-    let path = generate_to(Fish, &mut cmd, "stdecor", &outdir)?;
+    generate_to(Bash, &mut cmd.clone(), &name, &outdir)?;
+    let path = generate_to(Fish, &mut cmd.clone(), &name, &outdir)?;
     let mut fd = OpenOptions::new().append(true).open(path)?;
     writeln!(fd, "complete -c stdecor --wraps command")?;
     writeln!(fd, "complete -c stdecor --no-files")?;
-    generate_to(Zsh, &mut cmd, "stdecor", &outdir)?;
+    generate_to(Zsh, &mut cmd.clone(), &name, &outdir)?;
     Ok(())
 }
