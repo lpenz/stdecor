@@ -27,13 +27,8 @@ pub fn buildcmd(command: &[&str]) -> Result<Command> {
     Ok(cmd)
 }
 
-#[tracing::instrument(level = "trace", err)]
-fn print_line(decor: &Decor, key: usize, line: &str) -> Result<()> {
-    let mut output: Box<dyn Write> = if key == 0 {
-        Box::new(io::stdout().lock())
-    } else {
-        Box::new(io::stderr().lock())
-    };
+#[tracing::instrument(level = "trace", skip(decor, output), err)]
+fn print_line(decor: &Decor, output: &mut dyn Write, line: &str) -> Result<()> {
     for line_out in decor.decorate(line) {
         output.write_all(line_out.as_bytes())?;
     }
@@ -41,23 +36,29 @@ fn print_line(decor: &Decor, key: usize, line: &str) -> Result<()> {
     Ok(())
 }
 
-#[tracing::instrument(level = "trace", skip(decor, linereader), err)]
+#[tracing::instrument(level = "trace", skip(decor, output, linereader), err)]
 fn read_print_lines(
     decor: &Decor,
-    key: usize,
+    output: &mut dyn Write,
     linereader: &mut Box<dyn LineReadRawAndFd>,
 ) -> Result<()> {
     linereader.read_available()?;
     for line in linereader.lines_get() {
-        print_line(decor, key, &line)?;
+        print_line(decor, output, &line)?;
     }
     Ok(())
 }
 
 #[tracing::instrument(skip_all, err)]
-fn read_print_flush(decor: &Decor, linereaders: Vec<Box<dyn LineReadRawAndFd>>) -> Result<()> {
+fn read_print_flush(
+    decor: &Decor,
+    linereaders: Vec<Box<dyn LineReadRawAndFd>>,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+) -> Result<()> {
     for (key, mut linereader) in linereaders.into_iter().enumerate() {
-        read_print_lines(decor, key, &mut linereader)?;
+        let output: &mut dyn Write = if key == 0 { stdout } else { stderr };
+        read_print_lines(decor, output, &mut linereader)?;
     }
     Ok(())
 }
@@ -89,6 +90,8 @@ pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> 
      * same code: */
     let mut linereaders: Vec<Box<dyn LineReadRawAndFd>> =
         vec![Box::new(child_stdout), Box::new(child_stderr)];
+    let mut stdout = io::stdout().lock();
+    let mut stderr = io::stderr().lock();
     let poller = Poller::new()?;
     for (key, linereader) in linereaders.iter().enumerate() {
         // SAFETY: The raw fd is valid for the lifetime of linereader,
@@ -104,7 +107,12 @@ pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> 
         for ev in events.iter() {
             let linereader = &mut linereaders[ev.key];
             if !linereader.eof() {
-                read_print_lines(&decor, ev.key, linereader)?;
+                let output: &mut dyn Write = if ev.key == 0 {
+                    &mut stdout
+                } else {
+                    &mut stderr
+                };
+                read_print_lines(&decor, output, linereader)?;
                 // Set interest in the next readability event from client.
                 // Ignore unexpected errors — the read fd should remain
                 // valid but this is defensive against OS-level issues.
@@ -118,7 +126,7 @@ pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> 
             // Specially important if the command doesn't end its
             // output with a newline.
             info!(result = ?result, "from child.try_wait");
-            read_print_flush(&decor, linereaders)?;
+            read_print_flush(&decor, linereaders, &mut stdout, &mut stderr)?;
             return Ok(result);
         } else if linereaders.iter().all(|lr| lr.eof()) {
             // Both stdout and stderr at eof, nothing to do except
@@ -126,7 +134,7 @@ pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> 
             info!("both streams hit eof, waiting for child");
             let result = child.wait()?;
             info!(result = ?result, "from child.wait");
-            read_print_flush(&decor, linereaders)?;
+            read_print_flush(&decor, linereaders, &mut stdout, &mut stderr)?;
             return Ok(result);
         }
     }
