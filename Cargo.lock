@@ -611,7 +611,6 @@ dependencies = [
  "color-eyre",
  "lineriver",
  "man",
- "memchr",
  "polling",
  "terminal_size",
  "tracing",
