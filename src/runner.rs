@@ -13,14 +13,18 @@ use tracing::info;
 
 use crate::decor::Decor;
 
-#[tracing::instrument(ret)]
-pub fn buildcmd(command: &[&str]) -> Command {
-    let mut cmd = Command::new(command[0]);
+#[tracing::instrument(ret, err)]
+pub fn buildcmd(command: &[&str]) -> Result<Command> {
+    let mut cmd = Command::new(
+        command
+            .first()
+            .ok_or_else(|| eyre!("no command specified"))?,
+    );
     cmd.args(command.iter().skip(1))
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    cmd
+    Ok(cmd)
 }
 
 #[tracing::instrument(level = "trace", err)]
@@ -67,7 +71,7 @@ pub fn run(prefix: &str, date: bool, width: Option<usize>, command: &[&str]) -> 
         command = ?command
     );
     let decor = Decor::new(prefix, date, width)?;
-    let mut child = buildcmd(command).spawn()?;
+    let mut child = buildcmd(command)?.spawn()?;
     let child_stdout = LineReader::new(
         child
             .stdout
